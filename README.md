@@ -165,3 +165,169 @@ package com.jetbrains.simplelogin.shared
 import platform.Foundation.NSUUID
 actual fun randomUUID(): String = NSUUID().UUIDString()
 ```
+
+
+## Make your cross-platform application work on iOS 
+Once you've made your Android application cross-platform, you can create an iOS application and reuse the shared business logic in it.
+
+- Create an iOS project in Xcode.
+
+- Compile the shared module into a framework for the iOS project.
+
+- Connect the framework to your iOS project.
+
+- Automate iOS project updates.
+
+- Connect the shared module to the iOS project.
+
+### Create an iOS project in Xcode 
+In Xcode, click File | New | Project.
+
+Select a template for an iOS app and click Next.
+
+iOS project template
+As the product name, specify simpleLoginIOS and click Next.
+
+iOS project settings
+As the location for your project, select the directory that stores your cross-platform application, for example, kmm-integrate-into-existing-app.
+
+
+You can rename the simpleLoginIOS directory to iosApp for consistency with other top-level directories of your cross-platform project.
+
+Renamed iOS project directory in Android Studio - *You can rename, but don't, Xcode might delete project files *
+
+##Compile the shared module into a framework for the iOS project
+To use Kotlin code in your iOS project, compile shared code into a .framework.
+
+In Android Studio, run the packForXcode Gradle task in the Terminal:
+
+`./gradlew packForXcode`
+ 
+You can also run the packForXcode Gradle task by double-clicking it in the list of Gradle tasks.
+
+The generated framework is stored in the shared/build/xcode-frameworks/ directory.
+
+### Issues on this step:
+
+*To take advantage of the new functionality for Cocoapods Integration like synchronizing with the Xcode project 
+and supporting dependencies on pods, please install the `cocoapods-generate` plugin for CocoaPods 
+by calling `gem install cocoapods-generate` in terminal.*
+How to solve: `brew install cocoapods-generate`
+
+*KotlinTarget with name 'iosX64' not found*
+
+Changing the whole build.gradle.kts to this, seems to solve it:
+
+``` groovy
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
+plugins {
+    kotlin("multiplatform")
+    id("com.android.library")
+}
+
+android {
+    configurations {
+        create("androidTestApi")
+        create("androidTestDebugApi")
+        create("androidTestReleaseApi")
+        create("testApi")
+        create("testDebugApi")
+        create("testReleaseApi")
+    }
+}
+
+
+kotlin {
+    android()
+    ios {
+        binaries {
+            framework {
+                baseName = "kmmsharedmodule"
+            }
+        }
+    }
+    sourceSets {
+        val commonMain by getting
+        val androidMain by getting
+        val iosMain by getting
+    }
+}
+
+android {
+    compileSdkVersion(30)
+    defaultConfig {
+        minSdkVersion(21)
+        targetSdkVersion(30)
+    }
+    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+}
+
+val packForXcode by tasks.creating(Sync::class) {
+    group = "build"
+    val mode = System.getenv("CONFIGURATION") ?: "DEBUG"
+    val sdkName = System.getenv("SDK_NAME") ?: "iphonesimulator"
+    val targetName = "ios" + if (sdkName.startsWith("iphoneos")) "Arm64" else "X64"
+    val framework =
+        kotlin.targets.getByName<KotlinNativeTarget>(targetName).binaries.getFramework(mode)
+    inputs.property("mode", mode)
+    dependsOn(framework.linkTask)
+    val targetDir = File(buildDir, "xcode-frameworks")
+    from({ framework.outputDirectory })
+    into(targetDir)
+}
+tasks.getByName("build").dependsOn(packForXcode)
+```
+
+
+## Connect the framework to your iOS project 
+Once you have the framework, you can connect it to your iOS project manually.
+
+An alternative is to configure integration via Cocoapods, but that integration is beyond the scope of this tutorial.
+
+Connect your framework to the iOS project manually.
+
+In Xcode, open the iOS project settings by double-clicking the project name.
+
+Click the + under Frameworks, Libraries, and Embedded Content.
+
+Add the generated framework
+Click Add Other, then click Add Files, and select the generated framework in shared/build/xcode-frameworks/shared.framework.
+
+Framework is added
+Specify the Framework Search Path under Search Paths on the Build Settings tab – $(SRCROOT)/../shared/build/xcode-frameworks.
+
+Framework search path
+Automate iOS project updates﻿
+To avoid recompiling your framework manually after every change in the KMM module, configure automatic updates of the iOS project.
+
+On the Build Phases tab of the project settings, click the + and add New Run Script Phase.
+
+Add run script phase
+Add the following script:
+```
+cd "$SRCROOT/.."
+./gradlew :shared:packForXCode -PXCODE_CONFIGURATION=${CONFIGURATION}
+```
+ 
+Add the script
+Move the Run Script phase before the Compile Sources phase.
+
+Move the Run Script phase
+Connect the shared module to the iOS project﻿
+In Xcode, open the ContentView.swift file and import the shared module.
+```
+import shared
+ ```
+To check that it is properly connected, use the greeting() function from the KMM module:
+```
+import SwiftUI
+import shared
+
+struct ContentView: View {
+    var body: some View {
+        Text(Greeting().greeting())
+        .padding()
+    }
+}
+```
