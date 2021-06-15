@@ -1,6 +1,6 @@
-package com.jetbrains.simplelogin.androidapp.data
+package br.com.ampli.kmmsharedmodule.data
 
-import com.jetbrains.simplelogin.androidapp.data.model.LoggedInUser
+import br.com.ampli.kmmsharedmodule.data.model.LoggedInUser
 
 /**
  * Class that requests authentication and user information from the remote data source and

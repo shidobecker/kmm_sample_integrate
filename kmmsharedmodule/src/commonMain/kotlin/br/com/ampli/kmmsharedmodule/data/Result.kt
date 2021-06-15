@@ -1,4 +1,4 @@
-package com.jetbrains.simplelogin.androidapp.data
+package br.com.ampli.kmmsharedmodule.data
 
 /**
  * A generic class that holds a value with its loading status.

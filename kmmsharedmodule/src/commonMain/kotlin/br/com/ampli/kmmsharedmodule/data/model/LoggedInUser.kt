@@ -1,4 +1,4 @@
-package com.jetbrains.simplelogin.androidapp.data.model
+package br.com.ampli.kmmsharedmodule.data.model
 
 /**
  * Data class that captures user information for logged in users retrieved from LoginRepository

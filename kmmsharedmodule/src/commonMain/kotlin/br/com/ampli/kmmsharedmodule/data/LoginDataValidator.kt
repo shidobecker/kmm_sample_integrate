@@ -1,4 +1,4 @@
-package com.jetbrains.simplelogin.androidapp.data
+package br.com.ampli.kmmsharedmodule.data
 
 import android.util.Patterns
 
